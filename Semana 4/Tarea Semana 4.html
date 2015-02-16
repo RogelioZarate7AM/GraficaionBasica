@@ -117,6 +117,8 @@
 
     var mvMatrix = mat4.create();
     var pMatrix = mat4.create();
+	var mvMatrixStack = [];
+	
 
     function setMatrixUniforms() {
         gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
@@ -133,31 +135,53 @@
 	var hexagonColorBuffer;
 	
  function initBuffers() {
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.SRC_COLOR);
-
         triangleVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         var vertices = [
+             2.0, -1.0, 2.0, 
+            -2.0, -1.0, 2.0, 
+             2.0, -1.0, -2.0, 
+            -2.0, -1.0, -2.0,
              0.0,  2.0,  0.0,
-            -2.0, -2.0,  0.0,
-             2.0, -2.0,  0.0
+            -2.0, -1.0,  2.0,
+             2.0, -1.0,  2.0,
+             0.0,  2.0,  0.0,
+             2.0, -1.0,  2.0,
+             2.0, -1.0, -2.0
+       
+
+			
+			
         ];
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
         triangleVertexPositionBuffer.itemSize = 3;
-        triangleVertexPositionBuffer.numItems = 3;
+        triangleVertexPositionBuffer.numItems = 10;
 		
 		triangleVertexColorBuffer=gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexColorBuffer);
         var colors = [
-            1.0,0.0,0.0,0.0,
-            1.0,0.0,0.0,1.0,
-            1.0,0.0,0.0,0.0
+            // Front face
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+
+            // Right face
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+
+            // Back face
+            1.0, 0.0, 0.0, 1.0,
+            0.0, 1.0, 0.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+
+            // Left face
+            1.0, 0.0, 0.0, 1.0
         ];
         
         gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);
         triangleVertexColorBuffer.itemSize=4;
-        triangleVertexColorBuffer.numItems=3;
+        triangleVertexColorBuffer.numItems=10;
 
         squareVertexPositionBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
@@ -175,11 +199,11 @@
 		squareVertexColorBuffer=gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER,squareVertexColorBuffer);
         var colors = [
-            1.0,1.0,0.0,0.0,
+            1.0,0.0,0.0,1.0,
             1.0,1.0,0.0,1.0,
-            1.0,1.0,0.0,1.0,
-            1.0,1.0,0.0,1.0,
-            1.0,1.0,0.0,0.0 
+            0.0,1.0,0.0,1.0,
+            1.0,0.0,1.0,1.0,
+            0.0,1.0,1.0,1.0 
         ];
         
         gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(colors),gl.STATIC_DRAW);
@@ -231,13 +255,16 @@
         mat4.identity(mvMatrix);
 
         mat4.translate(mvMatrix, [-3.0, -1.0, -14.0]);
+		mvPushMatrix();//semana 4 
+		mat4.rotate(mvMatrix,degToRad(rTri),[1,1,0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ARRAY_BUFFER,triangleVertexColorBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, triangleVertexColorBuffer.itemSize, gl.FLOAT,false,0,0);
 		setMatrixUniforms();
-        gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, triangleVertexPositionBuffer.numItems);
+		
+		mvPopMatrix();//semana 4 
 
         mat4.translate(mvMatrix, [6.0, 0.0, 0.0]);
         gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
@@ -274,8 +301,49 @@
         gl.clearColor(.73, .16, .96, 1.0);
         gl.enable(gl.DEPTH_TEST);
 
-        drawScene();
+        //drawScene();
+		tick();// semana 4
     }
+	
+	
+	function tick(){//Dibuja y da animacion 
+	requestAnimationFrame(tick);
+	drawScene();
+	animate();//semana 4
+	}
+	
+	var rTri = 0;// semana 4 // variable que guarda el angulo de rotacion 
+	var lastTime = 0; //semana4 
+	function animate(){//semana4
+	var timeNow = new Date().getTime();//semana4
+	if(lastTime != 0){//semana4
+	var elapsed = timeNow-lastTime;//semana4
+	rTri +=(90*elapsed)/1000.0;//semana4 control de la velocidad de la rotacion entre mas pequeno el numero(90) es mas lento
+	}
+	lastTime = timeNow;//semana4
+	}
+	
+	function mvPushMatrix() { //semana4 funcion que se usa para meter los valores de una matriz y se usa para la rotacion
+		var copy = mat4.create();//semana4
+		mat4.set(mvMatrix,copy);//semana4
+		mvMatrixStack.push(copy);//semana4
+	}
+	
+	function mvPopMatrix(){//Semana4 funcion que saca los valore de la matriz que se usa para la rotacion
+		if(mvMatrixStack.length==0){//semana4
+			throw "Invalid popMatrix";//semana4
+			}
+				mvMatrix = mvMatrixStack.pop();
+		}
+	
+	
+	function degToRad(degrees) 
+	{//function degToRad, es una funcion para cambiar los grados a radianes ya que la funcion 
+								//de rotate solo acepta grados en radianes
+								return degrees * Math.PI/180;//semana4
+		}//semana4
+	
+	
 
 
 </script>
